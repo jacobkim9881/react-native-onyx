@@ -620,6 +620,7 @@ function clear(keysToPreserve: OnyxKey[] = []): Promise<void> {
     return cache.captureTask(TASK.CLEAR, promise) as Promise<void>;
 }
 
+//updateSnapshots would have different name since it doesn't update but return array of promises
 function updateSnapshots(data: OnyxUpdate[]) {
     const snapshotCollectionKey = OnyxUtils.getSnapshotKey();
     if (!snapshotCollectionKey) return;
@@ -676,7 +677,8 @@ function updateSnapshots(data: OnyxUpdate[]) {
         promises.push(() => merge(snapshotKey, {data: updatedData}));
     });
 
-    return Promise.all(promises.map((p) => p()));
+    return promises;
+    //return Promise.all(promises.map((p) => p()));
 }
 
 /**
@@ -805,8 +807,9 @@ function update(data: OnyxUpdate[]): Promise<void> {
     });
 
     return clearPromise
-        .then(() => Promise.all(promises.map((p) => p())))
-        .then(() => updateSnapshots(data))
+         //.then(() => Promise.all(promises.map((p) => p())))
+         //.then(() => updateSnapshots(data))
+	.then(() => Promise.all([...promises, ...updateSnapshots(data)].map((p) => p())))
         .then(() => undefined);
 }
 
