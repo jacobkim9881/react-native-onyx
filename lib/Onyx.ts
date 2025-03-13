@@ -326,6 +326,10 @@ function merge<TKey extends OnyxKey>(key: TKey, changes: OnyxMergeInput<TKey>): 
             // Case (2): The presence of a top-level `null` in the merge queue instructs us to drop the whole existing value.
             // In this case, we can't simply merge the batched changes with the existing value, because then the null in the merge queue would have no effect
             const shouldSetValue = !existingValue || mergeQueue[key].includes(null);
+		//console.log('existingValue ....: ', existingValue)
+		//console.log('!existingValue ....: ', !existingValue)
+		//console.log('mergeQueue[key].includes(null);......: ', mergeQueue[key].includes(null))
+		//console.log('mergeQueue[key]: ', mergeQueue[key])
 
             // Clean up the write queue, so we don't apply these changes again
             delete mergeQueue[key];
@@ -350,7 +354,9 @@ function merge<TKey extends OnyxKey>(key: TKey, changes: OnyxMergeInput<TKey>): 
             // The "preMergedValue" will be directly "set" in storage instead of being merged
             // Therefore we merge the batched changes with the existing value to get the final merged value that will be stored.
             // We can remove null values from the "preMergedValue", because "null" implicates that the user wants to remove a value from storage.
-            const preMergedValue = OnyxUtils.applyMerge(shouldSetValue ? undefined : existingValue, [batchedDeltaChanges], true);
+            const preMergedValue = OnyxUtils.applyMerge(shouldSetValue ? undefined : existingValue, [batchedDeltaChanges], true, 1);
+//	console.log('existingValue,...........: ', existingValue)	
+//		console.log('batchedDeltaChanges/............: ', batchedDeltaChanges)
 
             // In cache, we don't want to remove the key if it's null to improve performance and speed up the next merge.
             const hasChanged = cache.hasValueChanged(key, preMergedValue);
@@ -360,6 +366,7 @@ function merge<TKey extends OnyxKey>(key: TKey, changes: OnyxMergeInput<TKey>): 
             // This approach prioritizes fast UI changes without waiting for data to be stored in device storage.
             const updatePromise = OnyxUtils.broadcastUpdate(key, preMergedValue as OnyxValue<TKey>, hasChanged);
 
+		console.log('hasChanged........: ', hasChanged)
             // If the value has not changed, calling Storage.setItem() would be redundant and a waste of performance, so return early instead.
             if (!hasChanged) {
                 return updatePromise;
@@ -637,46 +644,68 @@ function updateSnapshots(data: OnyxUpdate[]) {
         }
 
         let updatedData: Record<string, unknown> = {};
+	    console.log('updateSnapshots..........data: ', data)
 
         data.forEach(({key, value}) => {
             // snapshots are normal keys so we want to skip update if they are written to Onyx
+	console.log('data.forEach')	
+		console.log('snapshotCollectionKey,: ', snapshotCollectionKey)
+		console.log('key: ', key)
+		console.log('value: ', value)
             if (OnyxUtils.isCollectionMemberKey(snapshotCollectionKey, key, snapshotCollectionKeyLength)) {
+		    console.log('isCollectionMemberKey')
                 return;
             }
 
+		console.log('2')
             if (typeof snapshotValue !== 'object' || !('data' in snapshotValue)) {
                 return;
             }
 
             const snapshotData = snapshotValue.data;
+		console.log('snapshotData.......: ', snapshotData)
+            //if (!snapshotData) {
             if (!snapshotData || !snapshotData[key]) {
                 return;
             }
 
+		console.log('4')
+		console.log('Array.isArray(value): ', Array.isArray(value))
+		console.log('Array.isArray(snapshotData[key]): ', Array.isArray(snapshotData[key]))
+            //if (Array.isArray(value)) {
             if (Array.isArray(value) || Array.isArray(snapshotData[key])) {
+                //updatedData[key] = value;
                 updatedData[key] = value || [];
                 return;
             }
-
+console.log('5')
             if (value === null) {
-                updatedData[key] = value;
+                updatedData[key] = value || {};
                 return;
             }
-
+console.log('6')
             const oldValue = updatedData[key] || {};
             const newValue = lodashPick(value, Object.keys(snapshotData[key]));
+		console.log('updatedData[key]: ', updatedData[key])
+		console.log('oldValue: ', oldValue)
+		console.log('snapshotData[key]: ', snapshotData[key])
+		console.log('newValue: ', newValue)
 
             updatedData = {...updatedData, [key]: Object.assign(oldValue, newValue)};
+		console.log('updatedData....: ', updatedData)
         });
 
         // Skip the update if there's no data to be merged
         if (utils.isEmptyObject(updatedData)) {
             return;
         }
+console.log('utils.isEmptyObject(updatedData) : ', utils.isEmptyObject(updatedData))
 
+		console.log('updatedData...fin.....: ', updatedData)
         promises.push(() => merge(snapshotKey, {data: updatedData}));
     });
 
+	    console.log('promises length: ', promises.length)
     return promises;
     //return Promise.all(promises.map((p) => p()));
 }
@@ -688,6 +717,7 @@ function updateSnapshots(data: OnyxUpdate[]) {
  * @returns resolves when all operations are complete
  */
 function update(data: OnyxUpdate[]): Promise<void> {
+	//console.log('update..................data: ', data)
     // First, validate the Onyx object is in the format we expect
     data.forEach(({onyxMethod, key, value}) => {
         if (!Object.values(OnyxUtils.METHOD).includes(onyxMethod)) {
@@ -802,10 +832,13 @@ function update(data: OnyxUpdate[]): Promise<void> {
         if (operations[0] === null) {
             promises.push(() => set(key, batchedChanges));
         } else {
+
+		//console.log('merge(key, batchedChanges...........: ', batchedChanges)
             promises.push(() => merge(key, batchedChanges));
         }
     });
 
+	//console.log('...updateSnapshots(data)... data : ', data)
     return clearPromise
          //.then(() => Promise.all(promises.map((p) => p())))
          //.then(() => updateSnapshots(data))

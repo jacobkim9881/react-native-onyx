@@ -27,16 +27,18 @@ function isMergeableObject(value: unknown): value is Record<string, unknown> {
  * @param shouldRemoveNestedNulls - If true, null object values will be removed.
  * @returns - The merged object.
  */
-function mergeObject<TObject extends Record<string, unknown>>(target: TObject | unknown | null | undefined, source: TObject, shouldRemoveNestedNulls = true): TObject {
+function mergeObject<TObject extends Record<string, unknown>>(target: TObject | unknown | null | undefined, source: TObject, shouldRemoveNestedNulls = true, testt, test2): TObject {
     const destination: Record<string, unknown> = {};
 
     const targetObject = isMergeableObject(target) ? target : undefined;
 
+//console.log('targetObject...........: ', targetObject)
     // First we want to copy over all keys from the target into the destination object,
     // in case "target" is a mergable object.
     // If "shouldRemoveNestedNulls" is true, we want to remove null values from the merged object
     // and therefore we need to omit keys where either the source or target value is null.
     if (targetObject) {
+testt ?	    console.log('targetObject..: ', targetObject) : null;
         // eslint-disable-next-line no-restricted-syntax, guard-for-in
         for (const key in targetObject) {
             const sourceValue = source?.[key];
@@ -51,6 +53,10 @@ function mergeObject<TObject extends Record<string, unknown>>(target: TObject | 
             const shouldOmitTargetKey = shouldRemoveNestedNulls && isSourceOrTargetNull;
 
             if (!shouldOmitTargetKey) {
+		    if (testt)  {
+			    console.log('!shouldOmitTargetKey: ');
+console.log('targetValue......: ', targetValue)
+}
                 destination[key] = targetValue;
             }
         }
@@ -66,7 +72,8 @@ function mergeObject<TObject extends Record<string, unknown>>(target: TObject | 
         // If "shouldRemoveNestedNulls" is set to true and the source value is null,
         // we don't want to set/merge the source value into the merged object.
         const shouldIgnoreNullSourceValue = shouldRemoveNestedNulls && sourceValue === null;
-        const shouldOmitSourceKey = sourceValue === undefined || shouldIgnoreNullSourceValue;
+        //const shouldOmitSourceKey = sourceValue === undefined || shouldIgnoreNullSourceValue;
+        const shouldOmitSourceKey = sourceValue === undefined || shouldIgnoreNullSourceValue || isEmptyObject(sourceValue);
 
         if (!shouldOmitSourceKey) {
             // If the source value is a mergable object, we want to merge it into the target value.
@@ -78,13 +85,25 @@ function mergeObject<TObject extends Record<string, unknown>>(target: TObject | 
                 // so that we can still use "fastMerge" to merge the source value,
                 // to ensure that nested null values are removed from the merged object.
                 const targetValueWithFallback = (targetValue ?? {}) as TObject;
-                destination[key] = fastMerge(targetValueWithFallback, sourceValue, shouldRemoveNestedNulls);
+		  if (testt || test2) {
+			  let testn = testt || test2;
+			  console.log('name: ', testn)
+			  console.log('isMergeableObject(sourceValue)');
+		    console.log('sourceValue: ..', sourceValue)
+		    console.log('targetValueWithFallback......>: ', targetValueWithFallback)
+		  }
+		    if ( test2) {
+console.log('isEmptyObject(sourceValue)...: ', isEmptyObject(sourceValue));
+		    }
+                destination[key] = fastMerge(targetValueWithFallback, sourceValue, shouldRemoveNestedNulls, 0, 2);
             } else {
+		   testt ? console.log(' else'): null;
                 destination[key] = sourceValue;
             }
         }
     }
 
+testt ?	console.log('destination...........: ', destination) : null;
     return destination as TObject;
 }
 
@@ -95,7 +114,7 @@ function mergeObject<TObject extends Record<string, unknown>>(target: TObject | 
  * On native, when merging an existing value with new changes, SQLite will use JSON_PATCH, which removes top-level nullish values.
  * To be consistent with the behaviour for merge, we'll also want to remove null values for "set" operations.
  */
-function fastMerge<TValue>(target: TValue, source: TValue, shouldRemoveNestedNulls = true): TValue {
+function fastMerge<TValue>(target: TValue, source: TValue, shouldRemoveNestedNulls = true, testt, test2): TValue {
     // We have to ignore arrays and nullish values here,
     // otherwise "mergeObject" will throw an error,
     // because it expects an object as "source"
@@ -103,7 +122,7 @@ function fastMerge<TValue>(target: TValue, source: TValue, shouldRemoveNestedNul
         return source;
     }
 
-    return mergeObject(target, source as Record<string, unknown>, shouldRemoveNestedNulls) as TValue;
+    return mergeObject(target, source as Record<string, unknown>, shouldRemoveNestedNulls, testt, test2) as TValue;
 }
 
 /** Deep removes the nested null values from the given value. */

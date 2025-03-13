@@ -1259,6 +1259,7 @@ function applyMerge<TValue extends OnyxInput<OnyxKey> | undefined, TChange exten
     existingValue: TValue,
     changes: TChange[],
     shouldRemoveNestedNulls: boolean,
+	testt
 ): TChange {
     const lastChange = changes?.at(-1);
 
@@ -1268,7 +1269,8 @@ function applyMerge<TValue extends OnyxInput<OnyxKey> | undefined, TChange exten
 
     if (changes.some((change) => change && typeof change === 'object')) {
         // Object values are then merged one after the other
-        return changes.reduce((modifiedData, change) => utils.fastMerge(modifiedData, change, shouldRemoveNestedNulls), (existingValue || {}) as TChange);
+	  testt ?  console.log('changes.........: ', changes)  : null;
+        return changes.reduce((modifiedData, change) => utils.fastMerge(modifiedData, change, shouldRemoveNestedNulls, testt), (existingValue || {}) as TChange);
     }
 
     // If we have anything else we can't merge it so we'll
