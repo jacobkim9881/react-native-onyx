@@ -1457,9 +1457,8 @@ describe('Onyx', () => {
 
         await Onyx.update([{key: cat, value: finalValue, onyxMethod: Onyx.METHOD.MERGE}]);
 
-        expect(callback).toBeCalledTimes(2);
-        expect(callback).toHaveBeenNthCalledWith(1, {data: {[cat]: initialValue}}, snapshot1);
-        expect(callback).toHaveBeenNthCalledWith(2, {data: {[cat]: finalValue}}, snapshot1);
+        expect(callback).toBeCalledTimes(1);
+        expect(callback).toHaveBeenNthCalledWith(1, {data: {[cat]: finalValue}}, snapshot1);
     });
 
     describe('update', () => {
